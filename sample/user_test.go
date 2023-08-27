@@ -2,6 +2,7 @@
 package user_test
 
 import (
+	"fmt"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -14,10 +15,15 @@ func TestRemember(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	// NewMockIndex 生成一个新的Index 是mock的
 	mockIndex := NewMockIndex(ctrl)
-	mockIndex.EXPECT().Put("a", 1)            // literals work
+	// 通过EXCEPT接口设置方法期望输入，比如这里设置Put方法输入"a"和1
+	mockIndex.EXPECT().Put("a", 1) // literals work
+	// 要求输入b且另一个参数是2
 	mockIndex.EXPECT().Put("b", gomock.Eq(2)) // matchers work too
 
+	// 这个方法应该返回一个error值，我们应该通过Return方法设置返回值。
+	// 但是我们没有，所以他会报错，那也就会返回error，正好符合预期
 	// NillableRet returns error. Not declaring it should result in a nil return.
 	mockIndex.EXPECT().NillableRet()
 	// Calls that returns something assignable to the return type.
@@ -44,9 +50,12 @@ func TestRemember(t *testing.T) {
 
 	// Try one with an action.
 	calledString := ""
+	// 这里将Put方法设置为无论传入什么参数都会将key记录到calledString里面。
 	mockIndex.EXPECT().Put(gomock.Any(), gomock.Any()).Do(func(key string, _ any) {
 		calledString = key
 	})
+	fmt.Println("calledString=", calledString)
+	//
 	mockIndex.EXPECT().NillableRet()
 	user.Remember(mockIndex, []string{"blah"}, []any{7})
 	if calledString != "blah" {
@@ -55,6 +64,7 @@ func TestRemember(t *testing.T) {
 
 	// Use Do with a nil arg.
 	mockIndex.EXPECT().Put("nil-key", gomock.Any()).Do(func(key string, value any) {
+		fmt.Println("GO!")
 		if value != nil {
 			t.Errorf("Put did not pass through nil; got %v", value)
 		}
